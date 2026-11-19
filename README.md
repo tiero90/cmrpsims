@@ -2,13 +2,32 @@
 
 Aplikasi latihan soal untuk persiapan sertifikasi **CMRP (Certified Maintenance & Reliability Professional)**.
 
+**Buka langsung:** https://tiero90.github.io/cmrpsims/
+
 - 600 soal pilihan ganda (4 pilihan), 120 per pilar SMRP Body of Knowledge
-- 59 soal hitungan dengan pembahasan rumus dan langkah perhitungan
+- Setiap soal punya pembahasan rinci: konsep, alasan setiap pilihan pengecoh salah, dan rujukan bab buku
+- 59 soal hitungan dengan rumus dan langkah perhitungan
 - Mode **Simulasi Ujian**: 110 soal, 150 menit, distribusi per pilar dapat diatur
 - Mode **Latihan per Pilar**, **Soal hitungan saja**, dan **Cari topik** (mis. NPV, OEE, Weibull)
 - Riwayat skor dan progres tersimpan di browser masing-masing pengguna (localStorage)
 
 Soal disusun orisinal berdasarkan konsep dalam *Maintenance and Reliability Best Practices* (Ramesh Gulati, edisi ke-3). Bukan soal resmi SMRP. Target 70% adalah patokan latihan, bukan nilai kelulusan resmi.
 
-## Menjalankan
-Buka langsung: https://tiero90.github.io/cmrpsims/ — atau unduh `index.html` dan buka di browser.
+## Struktur
+
+| Path | Isi |
+|---|---|
+| `index.html` | Situs jadi (hasil build) — yang ditampilkan GitHub Pages |
+| `src/app.html` | Kode aplikasi (HTML/CSS/JS) dengan placeholder `/*QB*/` |
+| `src/questions/p1.js` … `p5.js` | Bank soal per pilar: `[soal, jawaban benar, pengecoh 1, pengecoh 2, pengecoh 3, pembahasan, bab]` |
+| `tools/build.js` | Menggabungkan `src/` menjadi `index.html` |
+| `tools/audit.js` | Mengecek bias panjang jawaban (jawaban benar tidak boleh selalu terpanjang) |
+| `tools/mpatch.js` | Mengubah opsi/pembahasan soal tertentu dari file JSON |
+
+Soal dengan awalan `[Calc] ` ditampilkan sebagai soal hitungan. Urutan pilihan diacak saat aplikasi berjalan.
+
+## Build
+
+```bash
+node tools/build.js
+```

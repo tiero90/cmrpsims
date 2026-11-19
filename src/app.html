@@ -1,0 +1,470 @@
+<title>CMRP Exam Simulator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: one centered work column (max 880px); sticky instrument bar during an exam; cards only for selectable things. */
+:root{
+  --bg:#eef1ef; --surface:#ffffff; --sunk:#e3e8e5; --line:#cdd5d1;
+  --ink:#16201d; --muted:#56655f; --accent:#0d6b5c; --accent-ink:#ffffff; --accent-soft:#d5ebe5;
+  --flag:#b86e00; --flag-soft:#fbecd2; --ok:#1f7a3a; --ok-soft:#dcf0e1; --bad:#b4322a; --bad-soft:#f8dedb;
+  --p1:#2f5d8a; --p2:#8a5a2f; --p3:#0d6b5c; --p4:#7a3f7a; --p5:#5f6a1f;
+  --f-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#101614; --surface:#18201d; --sunk:#202a26; --line:#2f3b36;
+  --ink:#e6ece9; --muted:#97a6a0; --accent:#3fb39d; --accent-ink:#06211b; --accent-soft:#163a33;
+  --flag:#f0a63a; --flag-soft:#3a2c14; --ok:#5ccb7c; --ok-soft:#173523; --bad:#f07a70; --bad-soft:#3d1d1a;
+  --p1:#7fa9d6; --p2:#d6a27a; --p3:#3fb39d; --p4:#c98bc9; --p5:#b5c26a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101614; --surface:#18201d; --sunk:#202a26; --line:#2f3b36;
+  --ink:#e6ece9; --muted:#97a6a0; --accent:#3fb39d; --accent-ink:#06211b; --accent-soft:#163a33;
+  --flag:#f0a63a; --flag-soft:#3a2c14; --ok:#5ccb7c; --ok-soft:#173523; --bad:#f07a70; --bad-soft:#3d1d1a;
+  --p1:#7fa9d6; --p2:#d6a27a; --p3:#3fb39d; --p4:#c98bc9; --p5:#b5c26a; color-scheme:dark}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--f-body);font-size:15px;line-height:1.55;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:880px;margin:0 auto}
+h1,h2,h3{font-family:var(--f-display);font-weight:700;letter-spacing:.01em;text-wrap:balance;margin:0;line-height:1.1}
+h1{font-size:clamp(34px,6vw,52px)}
+h2{font-size:26px}
+h3{font-size:20px;font-weight:600}
+p{margin:0}
+.muted{color:var(--muted)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,label:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 18px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-weight:600}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent}
+.btn.flagged{background:var(--flag-soft);border-color:var(--flag);color:var(--flag)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.stack{display:flex;flex-direction:column;gap:16px}
+section{display:flex;flex-direction:column;gap:14px}
+
+/* Home */
+.hero{padding-block:36px 8px;display:flex;flex-direction:column;gap:12px}
+.hero p{max-width:62ch}
+.spec{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow:hidden}
+.spec div{flex:1 1 140px;padding:12px 16px;border-right:1px solid var(--line)}
+.spec div:last-child{border-right:0}
+.spec b{display:block;font-family:var(--f-mono);font-size:22px;font-weight:600}
+.spec span{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.mode{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:20px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.mode.main{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:13px;color:var(--muted);font-weight:500}
+select,input[type=number]{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;min-height:40px;padding:0 10px;width:100%}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:14px;border-radius:6px}
+.check input{margin-top:4px;accent-color:var(--accent)}
+.dist{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.dist .field label{font-size:11px;font-family:var(--f-mono)}
+.dist input{text-align:center;padding:0 4px}
+.pillars{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.pill{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:14px;display:flex;flex-direction:column;gap:8px;border-top:4px solid var(--pc)}
+.pill .n{font-family:var(--f-mono);font-size:12px;color:var(--pc);font-weight:600}
+.pill h3{font-size:18px}
+.meter{height:6px;border-radius:3px;background:var(--sunk);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--pc)}
+.hist{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow-x:auto}
+.hist table{width:100%;border-collapse:collapse;font-size:14px;min-width:520px}
+.hist th,.hist td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line)}
+.hist th{font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.06em}
+.hist tr:last-child td{border-bottom:0}
+.tag{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.tag.ok{background:var(--ok-soft);color:var(--ok)}
+.tag.bad{background:var(--bad-soft);color:var(--bad)}
+.tag.flag{background:var(--flag-soft);color:var(--flag)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--pc);display:inline-block}
+.resume{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;border:1px solid var(--flag);background:var(--flag-soft);border-radius:var(--r);padding:14px 16px}
+
+/* Exam */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);margin:0 calc(-1*max(16px,env(safe-area-inset-left,0px))) 0;padding:10px max(16px,env(safe-area-inset-left,0px))}
+.bar-in{max-width:880px;margin:0 auto;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between}
+.timer{font-family:var(--f-mono);font-size:26px;font-weight:600;letter-spacing:.02em;font-variant-numeric:tabular-nums;padding:2px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface)}
+.timer.warn{color:var(--flag);border-color:var(--flag)}
+.timer.crit{color:var(--bad);border-color:var(--bad);background:var(--bad-soft)}
+.progress{flex:1 1 200px;display:flex;flex-direction:column;gap:4px;min-width:160px}
+.progress .meter{height:8px}
+.progress .meter i{background:var(--accent)}
+.qcard{margin-top:22px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:clamp(18px,4vw,30px);display:flex;flex-direction:column;gap:18px}
+.qmeta{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center}
+.qtext{font-size:clamp(17px,2.4vw,20px);line-height:1.5;font-weight:500;max-width:68ch}
+.opts{display:flex;flex-direction:column;gap:10px}
+.opt{display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start;text-align:left;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--bg);width:100%}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt .k{font-family:var(--f-mono);font-weight:600;width:34px;height:34px;border-radius:6px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--line)}
+.opt .t{padding-top:5px;min-width:0}
+.opt.sel{border-color:var(--accent);background:var(--accent-soft)}
+.opt.sel .k{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.opt.right{border-color:var(--ok);background:var(--ok-soft)}
+.opt.right .k{background:var(--ok);color:var(--surface);border-color:var(--ok)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.opt.wrong .k{background:var(--bad);color:var(--surface);border-color:var(--bad)}
+.opt:disabled{cursor:default}
+.explain{border-left:3px solid var(--accent);background:var(--sunk);padding:12px 14px;border-radius:0 8px 8px 0;display:flex;flex-direction:column;gap:4px}
+.search{display:flex;gap:8px}
+.search input{flex:1;min-width:0;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;min-height:44px;padding:0 12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px;font-size:13px;font-family:var(--f-mono)}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+.qsum{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.qlist{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+.qlist li{display:grid;grid-template-columns:10px 1fr;gap:10px;align-items:baseline;padding:10px 14px;border-bottom:1px solid var(--line);font-size:14px;min-width:0}
+.qlist li:last-child{border-bottom:0}
+mark{background:var(--flag-soft);color:inherit;border-radius:3px;padding:0 2px}
+#qres{display:flex;flex-direction:column;gap:10px}
+.ex{white-space:pre-line;overflow-wrap:anywhere}
+.tag.calc{background:var(--accent-soft);color:var(--accent)}
+.explain.bad{border-color:var(--bad)}
+.explain.good{border-color:var(--ok)}
+.nav{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;margin-top:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(42px,1fr));gap:6px}
+.cell{height:38px;border-radius:6px;border:1px solid var(--line);background:var(--surface);font-family:var(--f-mono);font-size:13px;position:relative}
+.cell.ans{background:var(--accent-soft);border-color:var(--accent)}
+.cell.flg::after{content:"";position:absolute;top:3px;right:3px;width:7px;height:7px;border-radius:50%;background:var(--flag)}
+.cell.cur{outline:2px solid var(--ink);outline-offset:1px}
+.cell.r{background:var(--ok-soft);border-color:var(--ok)}
+.cell.w{background:var(--bad-soft);border-color:var(--bad)}
+.panel{margin-top:16px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:14px;height:14px;border-radius:4px;border:1px solid var(--line);display:inline-block}
+
+/* Modal */
+.scrim{position:fixed;inset:0;background:rgba(10,16,14,.55);z-index:20;display:grid;place-items:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.modal{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:22px;max-width:440px;width:100%;display:flex;flex-direction:column;gap:14px}
+
+/* Results */
+.score{display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:center;padding-block:28px 6px}
+.gauge{width:150px;height:150px;max-width:100%}
+.verdict{display:flex;flex-direction:column;gap:8px;min-width:0}
+.big{font-family:var(--f-display);font-size:56px;font-weight:700;line-height:1}
+.bars{display:flex;flex-direction:column;gap:12px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:16px}
+.barrow{display:grid;grid-template-columns:minmax(0,1.4fr) 2fr auto;gap:12px;align-items:center;font-size:14px}
+.barrow .meter{height:10px}
+.barrow .meter{position:relative}
+.target{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);opacity:.5}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tabs button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 14px;font-size:14px}
+.tabs button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.rev{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:10px}
+.rev .qtext{font-size:16px}
+.ropts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.ropts li{display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:start;padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);min-width:0}
+.ropts .k{font-family:var(--f-mono);font-weight:600;color:var(--muted)}
+.ropts .mk{font-size:12px;font-weight:600;white-space:nowrap}
+.ropts li.r{border-color:var(--ok);background:var(--ok-soft)}.ropts li.r .mk,.ropts li.r .k{color:var(--ok)}
+.ropts li.w{border-color:var(--bad);background:var(--bad-soft)}.ropts li.w .mk,.ropts li.w .k{color:var(--bad)}
+@media (max-width:560px){.ropts li{grid-template-columns:22px 1fr}.ropts .mk{grid-column:2}}
+.ans{display:flex;flex-direction:column;gap:6px;font-size:14px}
+.ans div{display:grid;grid-template-columns:110px 1fr;gap:8px}
+.ans div > span:first-child{color:var(--muted)}
+.ref{font-size:12px;color:var(--muted);font-family:var(--f-mono)}
+footer{margin-top:40px;font-size:12.5px;color:var(--muted);max-width:70ch}
+@media (max-width:560px){
+  .score{grid-template-columns:1fr;justify-items:start}
+  .barrow{grid-template-columns:1fr auto}
+  .barrow .meter{grid-column:1/-1;grid-row:2}
+  .dist{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .timer{font-size:22px}
+  .ans div{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:no-preference){.meter i{transition:width .4s ease}}
+</style>
+
+<div class="wrap" id="app"></div>
+
+<script>
+/*QB*/
+</script>
+<script>
+(function(){
+"use strict";
+const PILLARS={
+ 1:{en:"Business & Management",id:"Bisnis & Manajemen"},
+ 2:{en:"Manufacturing Process Reliability",id:"Keandalan Proses Manufaktur"},
+ 3:{en:"Equipment Reliability",id:"Keandalan Peralatan"},
+ 4:{en:"Organization & Leadership",id:"Organisasi & Kepemimpinan"},
+ 5:{en:"Work Management",id:"Manajemen Pekerjaan"}
+};
+const CHAPTERS={1:"Introducing Best Practices",2:"Culture and Leadership",3:"Understanding Maintenance",4:"Work Management: Planning and Scheduling",5:"Materials, Parts, and Inventory Management",6:"Measuring and Designing for Reliability and Maintainability",7:"Operator-Driven Reliability",8:"Maintenance Optimization",9:"Managing Performance",10:"Workforce Management",11:"Problem Solving and Improvement Tools",12:"Standards, Standardization, and Certification",13:"Current Trends and Practices"};
+const TARGET=70;
+const BANK={};
+for(const p of [1,2,3,4,5]){(QB[p]||[]).forEach((r,i)=>{const id=p+"-"+(i+1);const calc=r[0].startsWith("[Calc] ");BANK[id]={id,p,q:calc?r[0].slice(7):r[0],calc,opts:[r[1],r[2],r[3],r[4]],e:r[5],ch:r[6]}})}
+const ids=p=>Object.keys(BANK).filter(k=>BANK[k].p===p);
+
+/* storage (per-viewer convenience) */
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+const K_SES="cmrp_session_v1",K_HIST="cmrp_history_v1",K_STAT="cmrp_qstats_v1",K_CFG="cmrp_cfg_v1";
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const fmt=ms=>{ms=Math.max(0,ms);const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+":":"")+String(m).padStart(h?2:1,"0")+":"+String(x).padStart(2,"0")};
+const pct=(a,b)=>b?Math.round(a/b*1000)/10:0;
+const L="ABCD";
+
+let S=null; // active session
+let view="home", reviewFilter="wrong", showNav=false, timerId=null, modal=null;
+
+function pickQuestions(p,n,prioritize){
+  let pool=shuffle(p==="calc"?Object.keys(BANK).filter(k=>BANK[k].calc):ids(p));
+  if(prioritize){const st=store.get(K_STAT,{});const score=id=>{const s=st[id];if(!s)return 0;return s[1]===s[0]?2:1};pool.sort((a,b)=>score(a)-score(b))}
+  return pool.slice(0,n);
+}
+function newSession(cfg){
+  let list=[];
+  if(cfg.ids)list=shuffle(cfg.ids);
+  else if(cfg.mode==="exam"){for(const p of [1,2,3,4,5])list=list.concat(pickQuestions(p,cfg.dist[p],false));list=shuffle(list)}
+  else{if(cfg.pillar==="calc")list=pickQuestions("calc",cfg.count,cfg.prio);else if(cfg.pillar==="all"){const per=Math.ceil(cfg.count/5);for(const p of [1,2,3,4,5])list=list.concat(pickQuestions(p,per,cfg.prio));list=shuffle(list).slice(0,cfg.count)}else list=pickQuestions(+cfg.pillar,cfg.count,cfg.prio)}
+  S={mode:cfg.mode,src:cfg,label:cfg.ids?"Latihan topik \u201C"+cfg.query+"\u201D":cfg.mode==="exam"?"Simulasi Ujian":(cfg.pillar==="all"?"Latihan Campuran":cfg.pillar==="calc"?"Latihan Soal Hitungan":"Latihan Pilar "+cfg.pillar),
+    items:list.map(id=>({id,order:shuffle([0,1,2,3])})),ans:{},flag:{},cur:0,start:Date.now(),
+    durMs:cfg.mode==="exam"?cfg.minutes*60000:0,endAt:cfg.mode==="exam"?Date.now()+cfg.minutes*60000:0,done:false};
+  save();view="quiz";showNav=false;render();
+}
+function save(){if(S&&!S.done)store.set(K_SES,S)}
+
+function finish(auto){
+  if(!S||S.done)return;
+  S.done=true;S.finish=Date.now();S.auto=!!auto;
+  const st=store.get(K_STAT,{});let ok=0;const per={};
+  S.items.forEach((it,i)=>{const q=BANK[it.id];per[q.p]=per[q.p]||[0,0];per[q.p][1]++;const right=S.ans[i]===0;if(right){ok++;per[q.p][0]++}
+    if(S.ans[i]!==undefined){const s=st[it.id]||[0,0];s[0]++;if(right)s[1]++;st[it.id]=s}});
+  store.set(K_STAT,st);
+  const h=store.get(K_HIST,[]);h.unshift({t:S.finish,label:S.label,mode:S.mode,ok,n:S.items.length,per,used:S.finish-S.start});store.set(K_HIST,h.slice(0,30));
+  store.del(K_SES);stopTimer();view="result";reviewFilter="wrong";render();window.scrollTo(0,0);
+}
+
+/* timer */
+function startTimer(){stopTimer();if(S&&S.mode==="exam"&&!S.done)timerId=setInterval(tick,500)}
+function stopTimer(){if(timerId){clearInterval(timerId);timerId=null}}
+function tick(){const el=$("#timer");if(!S||S.done||S.mode!=="exam"||view!=="quiz")return;const left=S.endAt-Date.now();if(left<=0){finish(true);return}
+  if(el){el.textContent=fmt(left);el.className="timer"+(left<5*60000?" crit":left<15*60000?" warn":"")}}
+
+/* ---------- views ---------- */
+function render(){
+  if(view==="home")renderHome();else if(view==="quiz")renderQuiz();else renderResult();
+  renderModal();
+}
+function pillarMastery(){const st=store.get(K_STAT,{});const r={};for(const p of [1,2,3,4,5]){let seen=0,mast=0;ids(p).forEach(id=>{const s=st[id];if(s){seen++;if(s[1]>0&&s[1]===s[0])mast++}});r[p]={seen,mast,n:ids(p).length}}return r}
+
+function renderHome(){
+  stopTimer();
+  const DEF={minutes:150,dist:{1:22,2:22,3:22,4:22,5:22},pillar:"1",count:20,prio:true,query:""};const saved=store.get(K_CFG,{})||{};const cfg=Object.assign({},DEF,saved);cfg.dist=Object.assign({},DEF.dist,saved.dist||{});
+  const ses=store.get(K_SES,null);const hist=store.get(K_HIST,[]);const m=pillarMastery();
+  const total=Object.keys(BANK).length;
+  $("#app").innerHTML=`
+  <header class="hero">
+    <span class="eyebrow">Certified Maintenance &amp; Reliability Professional</span>
+    <h1>Simulator Ujian CMRP</h1>
+    <p class="muted">Latihan soal pilihan ganda berdasarkan lima pilar SMRP Body of Knowledge, mengacu pada <i>Maintenance and Reliability Best Practices</i> (Ramesh Gulati). Soal dalam bahasa Inggris seperti ujian aslinya; pembahasan dalam bahasa Indonesia.</p>
+  </header>
+  <div class="spec" aria-label="Format ujian">
+    <div><b>110</b><span>Soal ujian</span></div>
+    <div><b>150</b><span>Menit</span></div>
+    <div><b>4</b><span>Pilihan / soal</span></div>
+    <div><b>${total}</b><span>Bank soal</span></div>
+  </div>
+  ${ses?`<div class="resume" style="margin-top:16px"><div><b>${esc(ses.label)} belum selesai</b><p class="muted" style="font-size:14px">${Object.keys(ses.ans).length} dari ${ses.items.length} soal terjawab${ses.mode==="exam"?" · sisa waktu "+fmt(ses.endAt-Date.now()):""}</p></div>
+    <div class="row"><button class="btn ghost" id="discard">Buang</button><button class="btn primary" id="resume">Lanjutkan</button></div></div>`:""}
+  <section style="margin-top:28px" aria-labelledby="sh">
+    <h2 id="sh">Cari topik</h2>
+    <div class="search"><input id="q" type="search" placeholder="Ketik kata kunci, mis. NPV, Weibull, EOQ, Kotter" value="${esc(cfg.query||"")}" autocomplete="off" aria-describedby="qhint"><button class="btn primary" id="qgo" disabled>Latihan</button></div>
+    <div class="chips" role="group" aria-label="Topik cepat">${["NPV","OEE","MTBF","Weibull","P-F","RCM","FMEA","EOQ","backlog","Cpk","5S","Kotter"].map(t=>`<button class="chip" data-q="${t}">${t}</button>`).join("")}</div>
+    <p id="qhint" class="muted" style="font-size:13px">Mencari di teks soal, pilihan jawaban, dan pembahasan. Beberapa kata = semua harus cocok.</p>
+    <div id="qres"></div>
+  </section>
+  <section style="margin-top:28px">
+    <h2>Mulai</h2>
+    <div class="modes">
+      <div class="mode main">
+        <span class="eyebrow">Mode ujian</span>
+        <h3>Simulasi Ujian Lengkap</h3>
+        <p class="muted" style="font-size:14px">Soal diacak dari kelima pilar dengan timer berjalan. Jawaban dan pembahasan tampil setelah ujian diserahkan. Waktu habis = otomatis diserahkan.</p>
+        <div class="field"><label>Distribusi soal per pilar (total <span id="dtot" class="mono"></span>)</label>
+          <div class="dist">${[1,2,3,4,5].map(p=>`<div class="field"><label for="d${p}">P${p}</label><input id="d${p}" type="number" min="0" max="100" value="${cfg.dist[p]}"></div>`).join("")}</div></div>
+        <div class="field"><label for="mins">Durasi (menit)</label><input id="mins" type="number" min="10" max="300" value="${cfg.minutes}"></div>
+        <button class="btn primary" id="startExam">Mulai simulasi</button>
+      </div>
+      <div class="mode">
+        <span class="eyebrow">Mode latihan</span>
+        <h3>Latihan per Pilar</h3>
+        <p class="muted" style="font-size:14px">Tanpa batas waktu. Kunci jawaban dan pembahasan langsung muncul setiap kali Anda memilih jawaban.</p>
+        <div class="field"><label for="pp">Pilar</label><select id="pp">
+          ${[1,2,3,4,5].map(p=>`<option value="${p}" ${cfg.pillar==p?"selected":""}>Pilar ${p} · ${PILLARS[p].id}</option>`).join("")}
+          <option value="all" ${cfg.pillar==="all"?"selected":""}>Campuran semua pilar</option>
+          <option value="calc" ${cfg.pillar==="calc"?"selected":""}>Soal hitungan saja (${Object.values(BANK).filter(q=>q.calc).length} soal)</option></select></div>
+        <div class="field"><label for="pc">Jumlah soal</label><select id="pc">${[10,20,30,50,100].map(n=>`<option ${cfg.count==n?"selected":""}>${n}</option>`).join("")}</select></div>
+        <label class="check"><input type="checkbox" id="prio" ${cfg.prio?"checked":""}><span>Utamakan soal yang belum pernah dijawab atau pernah salah</span></label>
+        <button class="btn" id="startPrac">Mulai latihan</button>
+      </div>
+    </div>
+  </section>
+  <section style="margin-top:28px">
+    <h2>Bank soal per pilar</h2>
+    <p class="muted" style="font-size:14px">Bilah menunjukkan soal yang sudah Anda kuasai (selalu dijawab benar) di perangkat ini.</p>
+    <div class="pillars">${[1,2,3,4,5].map(p=>`<div class="pill" style="--pc:var(--p${p})"><span class="n">PILAR ${p} · ${m[p].n} SOAL</span><h3>${PILLARS[p].id}</h3><span class="muted" style="font-size:12.5px">${PILLARS[p].en}</span>
+      <div class="meter" role="img" aria-label="${m[p].mast} dari ${m[p].n} dikuasai"><i style="width:${pct(m[p].mast,m[p].n)}%"></i></div>
+      <span class="mono muted" style="font-size:12px">${m[p].mast} dikuasai · ${m[p].seen} pernah dijawab</span></div>`).join("")}</div>
+  </section>
+  <section style="margin-top:28px">
+    <h2>Riwayat</h2>
+    ${hist.length?`<div class="hist"><table><thead><tr><th>Waktu</th><th>Sesi</th><th>Skor</th><th>Durasi</th><th></th></tr></thead><tbody>
+      ${hist.slice(0,12).map(h=>{const sc=pct(h.ok,h.n);return `<tr><td class="mono">${new Date(h.t).toLocaleString("id-ID",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}</td><td>${esc(h.label)}</td><td class="mono">${h.ok}/${h.n} · ${sc}%</td><td class="mono">${fmt(h.used)}</td><td><span class="tag ${sc>=TARGET?"ok":"bad"}">${sc>=TARGET?"Di atas target":"Di bawah target"}</span></td></tr>`}).join("")}
+    </tbody></table></div>`:`<p class="muted">Belum ada sesi. Hasil setiap simulasi dan latihan akan tersimpan di sini (hanya di browser ini).</p>`}
+  </section>
+  <footer>Target latihan ${TARGET}% adalah patokan pribadi, bukan nilai kelulusan resmi; SMRP memakai skor berskala. Soal disusun orisinal dari konsep dan angka benchmark dalam buku, bukan salinan soal resmi. Referensi bab ditampilkan di setiap pembahasan.</footer>`;
+  const upd=()=>{let t=0;[1,2,3,4,5].forEach(p=>t+=+$("#d"+p).value||0);$("#dtot").textContent=t};upd();
+  [1,2,3,4,5].forEach(p=>$("#d"+p).addEventListener("input",upd));
+  const readCfg=()=>{const c={minutes:Math.min(300,Math.max(10,+$("#mins").value||150)),dist:{},pillar:$("#pp").value,count:+$("#pc").value,prio:$("#prio").checked};[1,2,3,4,5].forEach(p=>c.dist[p]=Math.min(100,Math.max(0,Math.round(+$("#d"+p).value||0))));store.set(K_CFG,c);return c};
+  $("#startExam").onclick=()=>{const c=readCfg();const t=Object.values(c.dist).reduce((a,b)=>a+b,0);if(!t){$("#dtot").textContent="0 — isi minimal satu pilar";return}
+    if(ses){modal={title:"Mulai ujian baru?",body:"Sesi yang belum selesai akan dibuang.",ok:"Mulai baru",fn:()=>{store.del(K_SES);newSession({mode:"exam",...c})}};renderModal();return}
+    newSession({mode:"exam",...c})};
+  const norm=t=>t.toLowerCase();
+  const search=qs=>{const terms=norm(qs).split(/\s+/).filter(Boolean);if(!terms.length)return [];return Object.keys(BANK).filter(id=>{const q=BANK[id];const hay=norm(q.q+" "+q.opts.join(" ")+" "+q.e);return terms.every(t=>hay.includes(t))})};
+  const hl=(txt,qs)=>{let h=esc(txt);norm(qs).split(/\s+/).filter(Boolean).forEach(t=>{const re=new RegExp("("+esc(t).replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","gi");h=h.replace(re,"<mark>$1</mark>")});return h};
+  let hits=[],showAll=false;
+  const runSearch=()=>{const qs=$("#q").value.trim();hits=search(qs);const c=store.get(K_CFG,{});c.query=qs;store.set(K_CFG,c);
+    $("#qgo").disabled=!hits.length;$("#qgo").textContent=hits.length?"Latihan "+hits.length+" soal":"Latihan";
+    if(!qs){$("#qres").innerHTML="";return}
+    if(!hits.length){$("#qres").innerHTML=`<p class="muted">Tidak ada soal yang cocok dengan \u201C${esc(qs)}\u201D. Coba kata lain atau ejaan bahasa Inggris (mis. "backlog", "inventory").</p>`;return}
+    const per={};hits.forEach(id=>{const p=BANK[id].p;per[p]=(per[p]||0)+1});const nc=hits.filter(id=>BANK[id].calc).length;
+    const shown=showAll?hits:hits.slice(0,8);
+    $("#qres").innerHTML=`<div class="qsum"><b>${hits.length} soal cocok</b>${[1,2,3,4,5].filter(p=>per[p]).map(p=>`<span class="tag" style="--pc:var(--p${p})"><span class="dot"></span>P${p} · ${per[p]}</span>`).join("")}${nc?`<span class="tag calc">Hitungan · ${nc}</span>`:""}</div>
+      <ol class="qlist">${shown.map(id=>{const q=BANK[id];return `<li style="--pc:var(--p${q.p})"><span class="dot"></span><span>${hl(q.q,qs)}</span></li>`}).join("")}</ol>
+      ${hits.length>8?`<button class="btn ghost" id="qmore">${showAll?"Tampilkan lebih sedikit":"Tampilkan semua "+hits.length+" soal"}</button>`:""}`;
+    if($("#qmore"))$("#qmore").onclick=()=>{showAll=!showAll;runSearch()}};
+  $("#q").addEventListener("input",()=>{showAll=false;runSearch()});
+  $("#q").addEventListener("keydown",e=>{if(e.key==="Enter"&&hits.length)$("#qgo").click()});
+  document.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{$("#q").value=b.dataset.q;showAll=false;runSearch();$("#q").focus()});
+  runSearch();
+  $("#qgo").onclick=()=>{if(!hits.length)return;const qs=$("#q").value.trim();const go=()=>{store.del(K_SES);newSession({mode:"practice",ids:hits.slice(),query:qs})};
+    if(ses){modal={title:"Mulai latihan topik?",body:"Sesi yang belum selesai akan dibuang.",ok:"Mulai baru",fn:go};renderModal();return}go()};
+  $("#startPrac").onclick=()=>{const c=readCfg();const go=()=>{store.del(K_SES);newSession({mode:"practice",pillar:c.pillar,count:c.count,prio:c.prio})};
+    if(ses){modal={title:"Mulai latihan baru?",body:"Sesi yang belum selesai akan dibuang.",ok:"Mulai baru",fn:go};renderModal();return}go()};
+  if(ses){$("#resume").onclick=()=>{S=ses;if(S.mode==="exam"&&S.endAt<=Date.now()){finish(true);return}view="quiz";render()};
+    $("#discard").onclick=()=>{store.del(K_SES);render()}}
+}
+
+function renderQuiz(){
+  const it=S.items[S.cur],q=BANK[it.id],n=S.items.length,answered=Object.keys(S.ans).length,chosen=S.ans[S.cur];
+  const prac=S.mode==="practice",locked=prac&&chosen!==undefined;
+  const flagged=!!S.flag[S.cur];
+  $("#app").innerHTML=`
+  <div class="bar"><div class="bar-in">
+    <div class="stack" style="gap:2px"><span class="eyebrow">${esc(S.label)}</span><b class="mono" style="font-size:15px">Soal ${S.cur+1} / ${n}</b></div>
+    <div class="progress"><div class="meter"><i style="width:${pct(answered,n)}%"></i></div><span class="muted mono" style="font-size:12px">${answered} terjawab · ${Object.values(S.flag).filter(Boolean).length} ditandai</span></div>
+    ${S.mode==="exam"?`<div id="timer" class="timer" role="timer" aria-label="Sisa waktu">${fmt(S.endAt-Date.now())}</div>`:""}
+    <div class="row"><button class="btn ghost" id="toggleNav" aria-expanded="${showNav}">Daftar soal</button><button class="btn" id="submit">${prac?"Akhiri":"Serahkan"}</button></div>
+  </div></div>
+  <article class="qcard" style="--pc:var(--p${q.p})">
+    <div class="qmeta"><span class="tag"><span class="dot"></span>Pilar ${q.p} · ${PILLARS[q.p].id}</span>${q.calc?`<span class="tag calc">Hitungan</span>`:""}${flagged?`<span class="tag flag">Ditandai</span>`:""}</div>
+    <p class="qtext">${esc(q.q)}</p>
+    <div class="opts" role="radiogroup" aria-label="Pilihan jawaban">
+      ${it.order.map((oi,pos)=>{let cls="opt";if(locked){if(oi===0)cls+=" right";else if(oi===chosen)cls+=" wrong"}else if(chosen===oi)cls+=" sel";
+        return `<button class="${cls}" role="radio" aria-checked="${chosen===oi}" data-oi="${oi}" ${locked?"disabled":""}><span class="k">${L[pos]}</span><span class="t">${esc(q.opts[oi])}</span></button>`}).join("")}
+    </div>
+    ${locked?`<div class="explain ${chosen===0?"good":"bad"}"><b>${chosen===0?"Benar.":"Kurang tepat. Jawaban: "+L[it.order.indexOf(0)]}</b><span class="ex">${esc(q.e)}</span><span class="ref">Gulati, Bab ${q.ch}: ${esc(CHAPTERS[q.ch])}</span></div>`:""}
+  </article>
+  <div class="nav">
+    <button class="btn" id="prev" ${S.cur===0?"disabled":""}>← Sebelumnya</button>
+    <button class="btn ${flagged?"flagged":""}" id="flag" aria-pressed="${flagged}">${flagged?"Hapus tanda":"Tandai untuk ditinjau"}</button>
+    ${S.cur<n-1?`<button class="btn primary" id="next">Berikutnya →</button>`:`<button class="btn primary" id="end">${prac?"Lihat hasil":"Serahkan ujian"}</button>`}
+  </div>
+  ${showNav?`<div class="panel"><div class="legend"><span><i class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></i>Terjawab</span><span><i class="sw" style="background:var(--surface)"></i>Belum</span><span><i class="sw" style="background:var(--flag);border-color:var(--flag);border-radius:50%;width:9px;height:9px"></i>Ditandai</span></div>
+    <div class="grid">${S.items.map((x,i)=>{let c="cell";if(prac&&S.ans[i]!==undefined)c+=S.ans[i]===0?" r":" w";else if(S.ans[i]!==undefined)c+=" ans";if(S.flag[i])c+=" flg";if(i===S.cur)c+=" cur";return `<button class="${c}" data-go="${i}" aria-label="Soal ${i+1}">${i+1}</button>`}).join("")}</div></div>`:""}
+  <p class="muted" style="font-size:12.5px;margin-top:18px">Pintasan: tombol 1–4 atau A–D memilih jawaban, ← → berpindah soal, F menandai.</p>`;
+  document.querySelectorAll(".opt").forEach(b=>b.onclick=()=>choose(+b.dataset.oi));
+  $("#prev").onclick=()=>go(S.cur-1);
+  if($("#next"))$("#next").onclick=()=>go(S.cur+1);
+  if($("#end"))$("#end").onclick=askSubmit;
+  $("#submit").onclick=askSubmit;
+  $("#flag").onclick=()=>{S.flag[S.cur]=!S.flag[S.cur];save();render()};
+  $("#toggleNav").onclick=()=>{showNav=!showNav;render()};
+  document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(+b.dataset.go));
+  startTimer();
+}
+function choose(oi){if(S.mode==="practice"&&S.ans[S.cur]!==undefined)return;S.ans[S.cur]=oi;save();render()}
+function go(i){if(i<0||i>=S.items.length)return;S.cur=i;save();render();const c=$(".qcard");if(c&&c.getBoundingClientRect().top<0)window.scrollTo(0,0)}
+function askSubmit(){
+  const n=S.items.length,a=Object.keys(S.ans).length,f=Object.values(S.flag).filter(Boolean).length;
+  modal={title:S.mode==="exam"?"Serahkan ujian?":"Akhiri latihan?",body:(n-a?`${n-a} soal belum dijawab dan akan dihitung salah. `:"Semua soal sudah dijawab. ")+(f?`${f} soal masih ditandai.`:""),ok:S.mode==="exam"?"Serahkan":"Akhiri",fn:()=>finish(false)};renderModal();
+}
+function renderModal(){
+  let el=$("#scrim");if(el)el.remove();if(!modal)return;
+  el=document.createElement("div");el.id="scrim";el.className="scrim";
+  el.innerHTML=`<div class="modal" role="dialog" aria-modal="true" aria-labelledby="mt"><h3 id="mt">${esc(modal.title)}</h3><p class="muted">${esc(modal.body)}</p><div class="row" style="justify-content:flex-end"><button class="btn ghost" id="mc">Batal</button><button class="btn primary" id="mo">${esc(modal.ok)}</button></div></div>`;
+  document.body.appendChild(el);
+  const close=()=>{modal=null;el.remove()};
+  $("#mc").onclick=close;el.onclick=e=>{if(e.target===el)close()};
+  $("#mo").onclick=()=>{const fn=modal.fn;close();fn()};$("#mo").focus();
+}
+
+function renderResult(){
+  const n=S.items.length;let ok=0;const per={};
+  S.items.forEach((it,i)=>{const p=BANK[it.id].p;per[p]=per[p]||[0,0];per[p][1]++;if(S.ans[i]===0){ok++;per[p][0]++}});
+  const sc=pct(ok,n),unans=n-Object.keys(S.ans).length,used=S.finish-S.start;
+  const R=62,C=2*Math.PI*R;
+  const list=S.items.map((it,i)=>({it,i,q:BANK[it.id],a:S.ans[i]})).filter(x=>reviewFilter==="all"||(reviewFilter==="wrong"&&x.a!==0)||(reviewFilter==="flag"&&S.flag[x.i]));
+  const weakest=Object.keys(per).sort((a,b)=>per[a][0]/per[a][1]-per[b][0]/per[b][1])[0];
+  $("#app").innerHTML=`
+  <div class="score">
+    <svg class="gauge" viewBox="0 0 150 150" role="img" aria-label="Skor ${sc} persen">
+      <circle cx="75" cy="75" r="${R}" fill="none" stroke="var(--sunk)" stroke-width="14"/>
+      <circle cx="75" cy="75" r="${R}" fill="none" stroke="${sc>=TARGET?"var(--ok)":"var(--bad)"}" stroke-width="14" stroke-linecap="round" stroke-dasharray="${C*sc/100} ${C}" transform="rotate(-90 75 75)"/>
+      <text x="75" y="82" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="26" font-weight="600" fill="var(--ink)">${Math.round(sc)}%</text>
+    </svg>
+    <div class="verdict">
+      <span class="eyebrow">${esc(S.label)}${S.auto?" · waktu habis, diserahkan otomatis":""}</span>
+      <div class="big">${ok} <span class="muted" style="font-size:28px">/ ${n} benar</span></div>
+      <p>${sc>=TARGET?`<span class="tag ok">Di atas target latihan ${TARGET}%</span>`:`<span class="tag bad">Di bawah target latihan ${TARGET}%</span>`}</p>
+      <p class="muted mono" style="font-size:13px">Waktu ${fmt(used)}${S.durMs?" dari "+fmt(S.durMs):""} · ${unans} tidak dijawab</p>
+    </div>
+  </div>
+  <section style="margin-top:18px">
+    <h2>Skor per pilar</h2>
+    <div class="bars">${Object.keys(per).sort().map(p=>{const v=pct(per[p][0],per[p][1]);return `<div class="barrow" style="--pc:var(--p${p})"><span><span class="dot"></span> P${p} · ${PILLARS[p].id}</span><div class="meter" role="img" aria-label="${v}%"><i style="width:${v}%"></i><span class="target" style="left:${TARGET}%"></span></div><span class="mono">${per[p][0]}/${per[p][1]} · ${v}%</span></div>`}).join("")}
+      <span class="muted" style="font-size:12.5px">Garis tipis = target ${TARGET}%.${Object.keys(per).length>1?` Fokus belajar berikutnya: <b>Pilar ${weakest} · ${PILLARS[weakest].id}</b>.`:""}</span></div>
+  </section>
+  <div class="row" style="margin-top:16px"><button class="btn primary" id="home">Kembali ke beranda</button>${S.mode==="practice"&&S.src?`<button class="btn" id="again">Ulangi latihan ini</button>`:""}</div>
+  <section style="margin-top:30px">
+    <h2>Pembahasan</h2>
+    <div class="tabs" role="group" aria-label="Saring pembahasan">
+      ${[["wrong","Salah & kosong ("+(n-ok)+")"],["flag","Ditandai ("+Object.values(S.flag).filter(Boolean).length+")"],["all","Semua ("+n+")"]].map(([k,t])=>`<button data-f="${k}" aria-pressed="${reviewFilter===k}">${t}</button>`).join("")}
+    </div>
+    ${list.length?list.map(({it,i,q,a})=>{const right=a===0;return `<article class="rev" style="--pc:var(--p${q.p})">
+      <div class="qmeta"><span class="mono muted" style="font-size:13px">Soal ${i+1}</span><span class="row" style="gap:6px"><span class="tag"><span class="dot"></span>P${q.p}</span>${q.calc?`<span class="tag calc">Hitungan</span>`:""}<span class="tag ${right?"ok":"bad"}">${a===undefined?"Tidak dijawab":right?"Benar":"Salah"}</span></span></div>
+      <p class="qtext">${esc(q.q)}</p>
+      <ol class="ropts">${it.order.map((oi,pos)=>{const c=oi===0?"r":oi===a?"w":"";return `<li class="${c}"><span class="k">${L[pos]}</span><span>${esc(q.opts[oi])}</span><span class="mk">${oi===0?"Jawaban benar":oi===a?"Jawaban Anda":""}</span></li>`}).join("")}</ol>
+      <div class="explain"><span class="ex">${esc(q.e)}</span><span class="ref">Gulati, Bab ${q.ch}: ${esc(CHAPTERS[q.ch])}</span></div></article>`}).join(""):`<p class="muted">Tidak ada soal pada filter ini.</p>`}
+  </section>`;
+  $("#home").onclick=()=>{S=null;view="home";render();window.scrollTo(0,0)};
+  if($("#again"))$("#again").onclick=()=>{newSession(S.src);window.scrollTo(0,0)};
+  document.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{reviewFilter=b.dataset.f;render()});
+}
+
+document.addEventListener("keydown",e=>{
+  if(modal){if(e.key==="Escape"){modal=null;renderModal()}return}
+  if(view!=="quiz"||!S||e.ctrlKey||e.metaKey||e.altKey)return;
+  const t=e.target.tagName;if(t==="INPUT"||t==="SELECT")return;
+  const k=e.key.toLowerCase();const it=S.items[S.cur];
+  const idx="1234".indexOf(k)>=0?"1234".indexOf(k):"abcd".indexOf(k);
+  if(idx>=0&&k.length===1){choose(it.order[idx]);e.preventDefault()}
+  else if(e.key==="ArrowRight"){go(S.cur+1);e.preventDefault()}
+  else if(e.key==="ArrowLeft"){go(S.cur-1);e.preventDefault()}
+  else if(k==="f"){S.flag[S.cur]=!S.flag[S.cur];save();render()}
+});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)tick()});
+render();
+})();
+</script>
