@@ -21,7 +21,9 @@ Soal disusun orisinal berdasarkan konsep dalam *Maintenance and Reliability Best
 | `src/app.html` | Kode aplikasi (HTML/CSS/JS) dengan placeholder `/*QB*/` |
 | `src/questions/p1.js` … `p5.js` | Bank soal per pilar: `[soal, jawaban benar, pengecoh 1, pengecoh 2, pengecoh 3, pembahasan, bab]` |
 | `tools/build.js` | Menggabungkan `src/` menjadi `index.html` |
+| `tools/validate.js` | Pemeriksa mutu bank soal (wajib lulus sebelum commit) |
 | `tools/audit.js` | Mengecek bias panjang jawaban (jawaban benar tidak boleh selalu terpanjang) |
+| `.claude/skills/cmrp-question-bank/` | Skill Claude Code: aturan dan alur kerja untuk menambah/merevisi soal dan menerbitkan situs |
 | `tools/mpatch.js` | Mengubah opsi/pembahasan soal tertentu dari file JSON |
 
 Soal dengan awalan `[Calc] ` ditampilkan sebagai soal hitungan. Urutan pilihan diacak saat aplikasi berjalan.
@@ -29,5 +31,5 @@ Soal dengan awalan `[Calc] ` ditampilkan sebagai soal hitungan. Urutan pilihan d
 ## Build
 
 ```bash
-node tools/build.js
+node tools/validate.js && node tools/build.js
 ```
